@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#153e35">
+<meta name="description" content="Western Sichuan EV route research, road-distance planning and foreground GPS."><title>川西 · EV Field Map</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="stylesheet" href="styles.css">
+<script defer src="vendor/maplibre-gl.js"></script><script defer src="data.js"></script><script defer src="routes.js"></script><script defer src="route-engine.js"></script><script defer src="app.js"></script>
+</head>
+<body>
+<div id="app">
+<header class="header"><div class="brand-mark" aria-hidden="true">↗</div><div class="brand"><span class="eyebrow">WESTERN SICHUAN / FIELD NOTES</span><h1>川西 · EV Field Map <small>04</small></h1></div><span id="connection" class="connection">Online</span></header>
+<nav class="days" id="days" aria-label="Trip day"></nav>
+<main>
+<section class="map-wrap" aria-label="Route map"><div id="map"></div><div class="map-label"><span class="dot"></span><span id="mapLabel">Road route · WGS84</span></div><div id="mapError" class="map-error" hidden></div><div class="map-actions"><button id="fit" aria-label="Fit selected road route">⤢ <span>Route</span></button><button id="recenter" aria-label="Center on current GPS location">◎ <span>Locate</span></button></div><div class="map-legend"><span><i class="green"></i>A / B candidate</span><span><i class="amber"></i>Area estimate</span><span><i class="coral"></i>Coverage gap</span></div></section>
+<aside class="workspace">
+<div class="route-heading"><div><span class="eyebrow" id="dayDate"></span><h2 id="routeTitle"></h2></div><span id="routeDistance" class="route-distance">—</span></div>
+<nav class="tabs" aria-label="Views"><button data-tab="drive" class="active" aria-current="page">Drive</button><button data-tab="chargers">Chargers <span id="chargerCount"></span></button><button data-tab="route">Route</button><button data-tab="settings">More</button></nav>
+<div class="panels">
+<section id="drivePanel" class="panel">
+<div class="location-bar"><div><span id="gpsDot" class="dot muted-dot"></span><strong id="gpsTitle">Preview · route start</strong><p id="gpsDetail">Enable GPS when you are on the route.</p></div><button id="gps" class="primary">Start GPS</button></div>
+<div id="routeWarning" class="notice" hidden></div>
+<div class="progress-label"><span id="progressText">0 km travelled</span><span id="remainingText">— remaining</span></div><div class="progress-track"><div id="progressFill"></div></div>
+<div class="section-label">YOUR NEXT STOPS <span id="modeLabel">PLANNING PREVIEW</span></div>
+<div id="nextCards"></div>
+<button id="gapCard" class="gap-card"></button>
+<p class="fineprint">Distances follow the road to the nearest route point, excluding charger access roads. A/B means location confidence, not live availability. Gaps describe this limited research dataset.</p>
+<details class="preview"><summary>Preview a position along this day</summary><label for="previewRange">Preview progress <output id="previewOutput">0 km</output></label><input id="previewRange" type="range" min="0" max="1000" value="0"><button id="previewReset" class="secondary">Return to route start</button></details>
+</section>
+<section id="chargersPanel" class="panel" hidden>
+<label class="search-label"><span class="sr-only">Search chargers</span><input id="search" type="search" placeholder="Search station, operator or town…"></label>
+<div class="filter-row"><select id="chargerFilter" aria-label="Charger filter"><option value="all">All research</option><option value="eligible">Planning candidates</option><option value="uncertain">Area / unlocated</option><option value="backup">Itinerary backups</option></select><span id="listCount"></span></div><p class="fineprint">Ordered by distance from the day's start. “Offset” is a straight-line distance to the road, not a driving detour.</p><div id="chargerList"></div>
+</section>
+<section id="routePanel" class="panel" hidden>
+<div class="section-label">THE ROAD AHEAD</div><div id="routeInfo"></div><label id="airportLabel" hidden>Departure airport<select id="airport"><option value="ctu">双流 Shuangliu (CTU)</option><option value="tfu">天府 Tianfu (TFU)</option></select></label><div id="stops" class="stops"></div>
+<div class="section-label">KNOWN COVERAGE GAPS</div><p class="fineprint">Includes the route start and end; those boundaries are not chargers. Nearby listings within 500 m along the route count as one coverage site.</p><div id="gaps"></div>
+<div class="button-row"><button id="exportRoute" class="secondary">Export road GeoJSON</button><button id="exportCSV" class="secondary">Export route distances</button></div>
+<details><summary>Replace this day's road geometry</summary><p class="fineprint">Import one continuous WGS84 GeoJSON LineString or GPX track/route, in travel order. Disconnected tracks are rejected. This overrides only the selected day / airport on this device.</p><input id="importRoute" type="file" accept=".json,.geojson,.gpx"><button id="restoreRoute" class="secondary">Restore bundled route</button></details>
+</section>
+<section id="settingsPanel" class="panel" hidden>
+<div class="section-label">MAP & PLANNING</div><label>Basemap<select id="basemap"><option value="osm">OpenStreetMap</option><option value="topo">Esri Topographic</option><option value="satellite">Esri Satellite</option><option value="blank">Offline canvas (no basemap)</option></select></label><label>Candidate corridor from road<select id="corridor"><option value="1000">1 km · stricter</option><option value="2000" selected>2 km · default</option><option value="5000">5 km · more possible detours</option></select></label><p class="fineprint">A wider corridor can admit stations across valleys or on the other carriageway. Check actual access in a navigation app.</p><label class="toggle"><input id="tesla" type="checkbox">Include Tesla sites (vehicle access checked by you)</label>
+<div class="section-label">FIELD RESEARCH</div><a class="secondary block" href="data/chargers.csv" download>Download original research CSV</a><button id="exportLogs" class="secondary block">Export my field notes</button><p class="fineprint">Field notes stay in this browser. Export before clearing site data.</p>
+<div class="section-label">OFFLINE & GPS</div><p class="fineprint" id="offlineStatus">The app, routes and charger data can be cached after your first HTTPS visit. Basemap tiles are not downloaded for offline use.</p><p class="fineprint">GPS requires HTTPS and location permission. Keep this page in the foreground; your phone may pause tracking when locked. Position remains on this device. Map providers receive tile requests for the area you view.</p><p class="fineprint">All geometry uses WGS84. AMap links use stored GCJ-02 coordinates. Approximate listings open a name search, never navigation to an invented charger pin.</p><p class="fineprint">v0.4 · Research records carried forward from v0.3 (checked 16 Sep 2026). No live connector status, reservation, or turn-by-turn navigation.</p>
+</section>
+</div>
+</aside>
+</main>
+</div>
+<dialog id="poiDialog"><div class="dialog-top"><span class="eyebrow">CHARGER FIELD NOTES</span><button id="closePoi" aria-label="Close charger details">✕</button></div><div id="poiContent"></div></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<noscript>This map requires JavaScript. The original data is in data/chargers.csv.</noscript>
+</body></html>
